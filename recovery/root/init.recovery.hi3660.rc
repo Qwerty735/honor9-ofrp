@@ -1,5 +1,22 @@
+# Honor 9 (stanford / hi3660) recovery init
+#
+# The USB gadget itself is created by OrangeFox's /init.rc on "fs" as soon as
+# sys.usb.configfs=1, so this file only has to:
+#   * turn configfs mode on and point init at the dwc3 controller (otherwise
+#     nothing ever binds the gadget and there is no adb/MTP at all);
+#   * add the Huawei kernel USB functions (mtp.gs0 -> /dev/mtp_usb, and
+#     mass_storage.0 which matches TARGET_USE_CUSTOM_LUN_FILE_PATH);
+#   * provide the mtp/mass_storage property triggers, which OrangeFox does not
+#     ship (its /init.rc only knows adb/fastboot/sideload).
+#
+# The Huawei android_usb driver needs port_mode writes for the USB switch to
+# route the port to the AP; values are the same ones the stock ROM uses.
+
 on init
     mkdir /mnt/system 0755 system system
+    mkdir /config 0770 root root
+    setprop sys.usb.configfs 1
+    setprop sys.usb.controller ff100000.dwc3
 
 on fs
     wait /dev/block/by-name/version
@@ -7,3 +24,39 @@ on fs
 
 on boot
     write /sys/class/leds/lcd_backlight0/brightness 1573
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+
+on property:sys.usb.config=none && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    write /sys/devices/virtual/android_usb/android0/port_mode 1
+
+on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mtp_adb"
+    start adbd
+
+on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
+    symlink /config/usb_gadget/g1/functions/mtp.gs0 /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    write /sys/devices/virtual/android_usb/android0/port_mode 4
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state ${sys.usb.config}
+
+on property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mass_storage_adb"
+    start adbd
+
+on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=1
+    symlink /config/usb_gadget/g1/functions/mass_storage.0 /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    write /sys/devices/virtual/android_usb/android0/port_mode 8
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state ${sys.usb.config}
