@@ -13,6 +13,11 @@ Converted from [Iceows/android_device_huawei_stanford](https://github.com/Iceows
 
 Huawei puts the kernel in the `kernel` partition. The recovery image is header v0 with `kernel_size=0` and a gzip ramdisk. Flash it to `recovery_ramdisk`, not `recovery`.
 
+`BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true` is what makes `mkbootimg` skip `--kernel`
+entirely. The old `BOARD_CUSTOM_BOOTIMG_MK` hook used by Android 9 trees no longer exists in
+AOSP 12.1, so `custombootimg.mk` was dropped; `prebuilt/dummykernel` stays only to keep the
+build system from trying to compile a kernel from source.
+
 ## Sync fox_12.1 (Linux)
 
 ```bash

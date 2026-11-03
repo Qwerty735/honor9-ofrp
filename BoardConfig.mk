@@ -48,9 +48,11 @@ BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --second_offset $(BOARD_SECOND_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION)
 
+# Android 10+ dropped BOARD_CUSTOM_BOOTIMG_MK, so use the supported flag to
+# build recovery without a kernel at all (mkbootimg gets no --kernel).
+BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
+# Still needed so nothing tries to compile a kernel from source.
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/dummykernel
-BOARD_CUSTOM_BOOTIMG := true
-BOARD_CUSTOM_BOOTIMG_MK := $(DEVICE_PATH)/custombootimg.mk
 
 # Display
 TARGET_SCREEN_DENSITY := 420

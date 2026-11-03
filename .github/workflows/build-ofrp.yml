@@ -85,6 +85,32 @@ jobs:
           lunch twrp_stanford-eng
           mka adbd recoveryimage -j$(nproc)
 
+      - name: Verify recovery image header
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import glob, struct, sys
+
+          images = sorted(set(glob.glob('fox_12.1/out/target/product/stanford/OrangeFox*.img')
+                              + glob.glob('fox_12.1/out/target/product/stanford/recovery.img')))
+          if not images:
+              print("no recovery images found")
+              sys.exit(0)
+
+          for path in images:
+              with open(path, 'rb') as f:
+                  data = f.read(1632)
+              if data[:8] != b'ANDROID!':
+                  print(f"{path}: BAD MAGIC {data[:8]!r}")
+                  sys.exit(1)
+              kernel_size, = struct.unpack('<I', data[8:12])
+              ramdisk_size, = struct.unpack('<I', data[16:20])
+              print(f"{path}: kernel_size={kernel_size} ramdisk_size={ramdisk_size}")
+              if kernel_size != 0:
+                  print("ERROR: kernel must not be embedded in recovery_ramdisk")
+                  sys.exit(1)
+          EOF
+
       - name: Collect artifacts
         if: always()
         run: |
