@@ -116,14 +116,17 @@ TW_INCLUDE_FASTBOOTD := true
 TW_EXCLUDE_APEX := true
 TW_EXCLUDE_TWRPAPP := true
 TW_EXCLUDE_DEFAULT_USB_INIT := true
-TW_EXCLUDE_MTP := true
+# NOTE: TW_EXCLUDE_MTP must stay unset. OrangeFox 12.1's partitionmanager.cpp
+# uses AID_MEDIA_RW but only gets <private/android_filesystem_config.h>
+# transitively through the MTP headers, so excluding MTP breaks the build.
 TW_NO_HAPTICS := true
 TW_NO_SCREEN_BLANK := true
 TW_BRIGHTNESS_PATH := /sys/class/leds/lcd_backlight0/brightness
 TW_MAX_BRIGHTNESS := 7992
 TW_DEFAULT_BRIGHTNESS := 1573
 TW_CUSTOM_BATTERY_PATH := /sys/class/power_supply/Battery
-TARGET_USE_CUSTOM_LUN_FILE_PATH := /config/usb_gadget/g1/functions/mass_storage.0/lun.0/file
+# %d is required: TWRP does sprintf(lun_file, CUSTOM_LUN_FILE, index).
+TARGET_USE_CUSTOM_LUN_FILE_PATH := /config/usb_gadget/g1/functions/mass_storage.0/lun.%d/file
 TWRP_INCLUDE_LOGCAT := true
 TARGET_USES_LOGD := true
 TW_DEVICE_VERSION := Honor9-STF
