@@ -38,6 +38,10 @@ BOARD_KERNEL_IMAGE_NAME := Image.gz
 BOARD_BOOT_HEADER_VERSION := 0
 BOARD_KERNEL_CMDLINE := loglevel=4 initcall_debug=n page_tracker=on slub_min_objects=16 unmovable_isolate1=2:192M,3:224M,4:256M printktimer=0xfff0a000,0x534,0x538
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
+# Honor 9 keeps the dynamic-partition (super) metadata on the "system"
+# partition; TWRP resolves it through ro.boot.super_partition, so without this
+# all logical partitions (system/vendor/product/...) get dropped at boot.
+BOARD_KERNEL_CMDLINE += androidboot.super_partition=system
 BOARD_KERNEL_OFFSET := 0x00008000
 BOARD_KERNEL_TAGS_OFFSET := 0x07988000
 BOARD_RAMDISK_OFFSET := 0x07b88000
