@@ -70,7 +70,12 @@ jobs:
           export OF_FORCE_PREBUILT_KERNEL=1
           export FOX_VANILLA_BUILD=1
           export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
+          # envsetup.sh ends with addcompletions(), which returns non-zero in a
+          # non-interactive shell. Every function is already defined at that
+          # point, but `bash -e` would abort the step on the non-zero status.
+          set +e
           source build/envsetup.sh
+          set -e
           lunch twrp_stanford-eng
           mka adbd recoveryimage -j$(nproc)
 

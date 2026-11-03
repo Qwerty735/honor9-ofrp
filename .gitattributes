@@ -1,0 +1,9 @@
+# Normalize line endings: the tree is built on Linux, so keep LF everywhere
+# even when checked out on Windows.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gz binary
+*.img binary
+*.zip binary
