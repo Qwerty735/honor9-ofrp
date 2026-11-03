@@ -42,17 +42,22 @@ jobs:
           git config --global user.name "OFRP CI"
           git config --global color.ui false
 
-      - name: Swap
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 8
-
       - name: Sync OrangeFox fox_12.1
         run: |
           git clone --depth=1 https://gitlab.com/OrangeFox/sync.git OrangeFox_sync
           cd OrangeFox_sync
           chmod +x orangefox_sync.sh
           ./orangefox_sync.sh --branch 12.1 --path "$GITHUB_WORKSPACE/fox_12.1"
+
+      # The runner only has ~45 GB free, and a full sync plus out/ is right at
+      # the edge of that. The git objects in .repo are no longer needed once the
+      # tree is checked out, so drop them before building.
+      - name: Reclaim disk space
+        run: |
+          df -h /
+          du -sh fox_12.1/.repo 2>/dev/null || true
+          rm -rf fox_12.1/.repo
+          df -h /
 
       - name: Install device tree
         run: |
@@ -64,6 +69,7 @@ jobs:
       - name: Build recoveryimage
         run: |
           cd fox_12.1
+          df -h /
           export ALLOW_MISSING_DEPENDENCIES=true
           export LC_ALL=C
           export FOX_BUILD_DEVICE=stanford
@@ -82,6 +88,8 @@ jobs:
       - name: Collect artifacts
         if: always()
         run: |
+          df -h / || true
+          du -sh fox_12.1/out 2>/dev/null || true
           mkdir -p artifacts
           OUT="fox_12.1/out/target/product/stanford"
           ls -lah "$OUT" || true
