@@ -18,6 +18,19 @@ entirely. The old `BOARD_CUSTOM_BOOTIMG_MK` hook used by Android 9 trees no long
 AOSP 12.1, so `custombootimg.mk` was dropped; `prebuilt/dummykernel` stays only to keep the
 build system from trying to compile a kernel from source.
 
+## fox_12.1 notes
+
+* `recovery/root` is **not** copied automatically. `TARGET_RECOVERY_DEVICE_DIRS` is dead in
+  AOSP 12.1, so every file in that directory has to be installed through `PRODUCT_COPY_FILES`
+  in `device.mk`.
+* USB uses configfs (`sys.usb.configfs=1`, controller `ff100000.dwc3`). OrangeFox's own
+  `init.rc` creates the gadget for adb/fastboot/sideload only; `recovery/root/init.recovery.hi3660.rc`
+  adds Huawei's `mtp.gs0` (`/dev/mtp_usb`) and `mass_storage.0` functions, the `mtp,adb` /
+  `mass_storage,adb` triggers and the `port_mode` writes the Huawei USB switch needs.
+* TWRP resolves dynamic partitions through `ro.boot.super_partition`. On the Honor 9 the
+  super metadata lives on the `system` partition, hence
+  `androidboot.super_partition=system` in `BOARD_KERNEL_CMDLINE`.
+
 ## Sync fox_12.1 (Linux)
 
 ```bash

@@ -17,10 +17,8 @@ on init
     mkdir /config 0770 root root
     setprop sys.usb.configfs 1
     setprop sys.usb.controller ff100000.dwc3
-
-on fs
-    wait /dev/block/by-name/version
-    wait /dev/block/by-name/userdata
+    # TWRP expects the boot ramdisk as "ramdisk"; Huawei names it "kernel".
+    symlink /dev/block/by-name/kernel /dev/block/by-name/ramdisk
 
 on boot
     write /sys/class/leds/lcd_backlight0/brightness 1573
