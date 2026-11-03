@@ -1,0 +1,10 @@
+ro.sf.lcd_density=420
+ro.hardware=hi3660
+ro.hardware.keystore=hisi
+sys.usb.configfs=1
+sys.usb.controller=ff100000.dwc3
+persist.sys.usb.config=adb
+ro.adb.secure=0
+ro.secure=0
+ro.debuggable=1
+ro.vendor.camera.platform_name=STF

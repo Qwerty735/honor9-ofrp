@@ -1,0 +1,26 @@
+/system ext4 /dev/block/mapper/system flags=display="System";backup=1;wipeingui;logical
+/system_image emmc /dev/block/mapper/system flags=backup=1;flashimg=1;logical
+/system_ext ext4 /dev/block/mapper/system_ext flags=display="System Ext";backup=1;wipeingui;logical
+/system_ext_image emmc /dev/block/mapper/system_ext flags=display="System Ext Image";backup=1;flashimg=1;logical
+/vendor ext4 /dev/block/mapper/vendor flags=display="Vendor";backup=1;wipeingui;logical
+/vendor_image emmc /dev/block/mapper/vendor flags=display="Vendor Image";backup=1;flashimg=1;logical
+/product ext4 /dev/block/mapper/product flags=display="Product";backup=1;wipeingui;logical
+/product_image emmc /dev/block/mapper/product flags=display="Product Image";backup=1;flashimg=1;logical
+/odm ext4 /dev/block/mapper/odm flags=display="ODM";backup=1;wipeingui;logical
+/odm_image emmc /dev/block/mapper/odm flags=display="ODM Image";backup=1;flashimg=1;logical
+
+/data f2fs /dev/block/by-name/userdata flags=display="Data";backup=1;wipeingui;encryptable=footer
+/cache ext4 /dev/block/by-name/cache flags=display="Cache";backup=1;wipeingui
+/metadata ext4 /dev/block/by-name/version flags=display="Metadata";backup=1
+
+/kernel emmc /dev/block/by-name/kernel flags=display="Kernel";backup=1;flashimg
+/ramdisk emmc /dev/block/by-name/ramdisk flags=display="Boot Ramdisk";backup=1;flashimg
+/recovery emmc /dev/block/by-name/recovery_ramdisk flags=display="Recovery Ramdisk";backup=1;flashimg
+/recovery_vendor emmc /dev/block/by-name/recovery_vendor flags=display="Recovery Vendor";backup=1;flashimg
+/cust emmc /dev/block/by-name/cust flags=display="Cust";backup=1
+/oeminfo emmc /dev/block/by-name/oeminfo flags=display="OEMinfo";backup=1
+/misc emmc /dev/block/by-name/misc flags=display="Misc";backup=0
+/splash2 ext4 /dev/block/by-name/splash2 flags=display="Splash2";backup=1
+
+/external_sd auto /dev/block/mmcblk1p1 /dev/block/mmcblk1 flags=display="MicroSD";storage;wipeingui;removable
+/usb-otg auto /dev/block/sda1 /dev/block/sda flags=display="USB-OTG";storage;wipeingui;removable;backup=0

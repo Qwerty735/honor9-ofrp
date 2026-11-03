@@ -1,0 +1,94 @@
+name: Build OrangeFox 12.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master, fox_12.1]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@v4
+        with:
+          path: device-tree
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Prepare build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-core gnupg flex bison build-essential \
+            zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
+            libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev \
+            lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
+            python3 python-is-python3 rsync ccache libssl-dev bc cpio wget
+          curl -s https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+          chmod a+x ~/repo
+          sudo mv ~/repo /usr/local/bin/repo
+          git config --global user.email "ofrp-ci@localhost"
+          git config --global user.name "OFRP CI"
+          git config --global color.ui false
+
+      - name: Swap
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 8
+
+      - name: Sync OrangeFox fox_12.1
+        run: |
+          git clone --depth=1 https://gitlab.com/OrangeFox/sync.git OrangeFox_sync
+          cd OrangeFox_sync
+          chmod +x orangefox_sync.sh
+          ./orangefox_sync.sh --branch 12.1 --path "$GITHUB_WORKSPACE/fox_12.1"
+
+      - name: Install device tree
+        run: |
+          mkdir -p fox_12.1/device/huawei/stanford
+          rsync -a --exclude '.git' --exclude 'Android-Image-Kitchen-master' \
+            --exclude '_ramdisk_extract' --exclude '.github' \
+            device-tree/ fox_12.1/device/huawei/stanford/
+
+      - name: Build recoveryimage
+        run: |
+          cd fox_12.1
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+          export FOX_BUILD_DEVICE=stanford
+          export OF_FORCE_PREBUILT_KERNEL=1
+          export FOX_VANILLA_BUILD=1
+          export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
+          source build/envsetup.sh
+          lunch twrp_stanford-eng
+          mka adbd recoveryimage -j$(nproc)
+
+      - name: Collect artifacts
+        if: always()
+        run: |
+          mkdir -p artifacts
+          OUT="fox_12.1/out/target/product/stanford"
+          ls -lah "$OUT" || true
+          cp -v "$OUT"/OrangeFox*.img artifacts/ 2>/dev/null || true
+          cp -v "$OUT"/OrangeFox*.zip artifacts/ 2>/dev/null || true
+          cp -v "$OUT"/recovery.img artifacts/ 2>/dev/null || true
+          find "$OUT" -maxdepth 1 -type f \( -name '*.img' -o -name '*.zip' \) -print -exec cp -v {} artifacts/ \; || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ofrp-stanford
+          path: artifacts/*
+          if-no-files-found: warn

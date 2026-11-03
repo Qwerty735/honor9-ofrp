@@ -1,0 +1,9 @@
+on init
+    mkdir /mnt/system 0755 system system
+
+on fs
+    wait /dev/block/by-name/version
+    wait /dev/block/by-name/userdata
+
+on boot
+    write /sys/class/leds/lcd_backlight0/brightness 1573
