@@ -13,6 +13,24 @@ Converted from [Iceows/android_device_huawei_stanford](https://github.com/Iceows
 
 Huawei puts the kernel in the `kernel` partition. The recovery image is header v0 with `kernel_size=0` and a gzip ramdisk. Flash it to `recovery_ramdisk`, not `recovery`.
 
+The header must match the stock EMUI `recovery_ramdisk` (verified against a stock dump):
+
+| field | value |
+|---|---|
+| `kernel_addr` | `0x10008000` |
+| `ramdisk_addr` | `0x11000000` |
+| `second_addr` | `0x10f00000` (`0` is accepted, `second_size=0`) |
+| `tags_addr` | `0x10000100` |
+| `page_size` | `2048` |
+| `header_version` | `0` |
+| `os_version` | `0x12000137` (Android 9.0.0, patch 2019-07) |
+| `cmdline` | `... androidboot.selinux=permissive androidboot.super_partition=system buildvariant=user` |
+
+`BOARD_KERNEL_BASE := 0x10000000` plus offsets `0x8000` / `0x01000000` / `0x00f00000` / `0x00000100`.
+Note that AOSP 12.1's `recoveryimage` target passes neither `--kernel` nor `--cmdline`
+to `mkbootimg`, so the cmdline has to be added through `BOARD_MKBOOTIMG_ARGS`.
+The CI job asserts all of the above.
+
 `BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true` is what makes `mkbootimg` skip `--kernel`
 entirely. The old `BOARD_CUSTOM_BOOTIMG_MK` hook used by Android 9 trees no longer exists in
 AOSP 12.1, so `custombootimg.mk` was dropped; `prebuilt/dummykernel` stays only to keep the

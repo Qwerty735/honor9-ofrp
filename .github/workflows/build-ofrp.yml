@@ -103,9 +103,13 @@ jobs:
           EXPECTED = {
               'kernel_addr': 0x10008000,
               'ramdisk_addr': 0x11000000,
-              'second_addr': 0x10f00000,
               'tags_addr': 0x10000100,
           }
+          # mkbootimg writes second_addr=0 when no second stage is passed, and
+          # the stock EMUI header only carries 0x10f00000 because Huawei's
+          # mkbootimg variant is unconditional. Both are fine: second_size is 0,
+          # so the bootloader never loads anything there.
+          ALLOWED_SECOND_ADDR = (0x0, 0x10f00000)
           REQUIRED_CMDLINE = ('androidboot.selinux=permissive',
                               'androidboot.super_partition=system')
 
@@ -133,10 +137,14 @@ jobs:
                   ok = False
               for name, want in EXPECTED.items():
                   got = {'kernel_addr': kernel_addr, 'ramdisk_addr': ramdisk_addr,
-                         'second_addr': second_addr, 'tags_addr': tags_addr}[name]
+                         'tags_addr': tags_addr}[name]
                   if got != want:
                       print(f"ERROR: {name} is {got:#x}, expected {want:#x}")
                       ok = False
+              if second_addr not in ALLOWED_SECOND_ADDR:
+                  print(f"ERROR: second_addr is {second_addr:#x}, expected one of "
+                        f"{[hex(a) for a in ALLOWED_SECOND_ADDR]}")
+                  ok = False
               for want in REQUIRED_CMDLINE:
                   if want not in cmdline:
                       print(f"ERROR: cmdline is missing {want}")

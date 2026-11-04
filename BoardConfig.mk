@@ -110,7 +110,9 @@ TW_INCLUDE_LOGICAL := system system_ext vendor product odm
 BOARD_HAS_NO_SELECT_BUTTON := true
 BOARD_SUPPRESS_SECURE_ERASE := true
 BOARD_USES_FULL_RECOVERY_IMAGE := false
-TARGET_RECOVERY_PIXEL_FORMAT := RGB565
+# Iceows' hi3660/hi6250 trees (this panel's known-good TWRP config) use
+# BGRA_8888; RGB565 gives swapped/garbled colours on the Honor 9.
+TARGET_RECOVERY_PIXEL_FORMAT := BGRA_8888
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/recovery/root/system/etc/recovery.fstab
 RECOVERY_SDCARD_ON_DATA := true
 
