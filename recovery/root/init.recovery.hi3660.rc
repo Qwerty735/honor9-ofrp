@@ -12,18 +12,44 @@
 # The Huawei android_usb driver needs port_mode writes for the USB switch to
 # route the port to the AP; values are the same ones the stock ROM uses.
 
+service bfm-ctl /system/bin/bfm-ctl
+    class default
+    user root
+    group root system
+    oneshot
+
+# Keeps dmesg/logcat on /cache so a bootloop can be analysed afterwards.
+service logdump /system/bin/sh /system/bin/logdump.sh
+    class default
+    user root
+    group root system
+
 on init
     mkdir /mnt/system 0755 system system
     mkdir /config 0770 root root
     setprop sys.usb.configfs 1
     setprop sys.usb.controller ff100000.dwc3
+    # Stock Huawei userspace (and their updater) reach the partitions through
+    # /dev/block/bootdevice; everything else here uses /dev/block/by-name.
+    symlink /dev/block/platform/${ro.boot.boot_devices} /dev/block/bootdevice
     # TWRP expects the boot ramdisk as "ramdisk"; Huawei names it "kernel".
     symlink /dev/block/by-name/kernel /dev/block/by-name/ramdisk
 
 on boot
+    # OrangeFox's init.rc turns every kernel oops into a panic ("write
+    # /proc/sys/kernel/panic_on_oops 1"). A single bad driver in the stock
+    # Huawei kernel then kills the whole recovery before the UI comes up, which
+    # is what a one-minute frozen splash followed by a reboot looks like. Keep
+    # the oops in dmesg instead and let userspace survive.
+    write /proc/sys/kernel/panic_on_oops 0
+    write /proc/sys/kernel/panic 0
     write /sys/class/leds/lcd_backlight0/brightness 1573
     mkdir /config/usb_gadget/g1/functions/mtp.gs0
     mkdir /config/usb_gadget/g1/functions/mass_storage.0
+    # Make adb available as early as possible - it is the only way to see what
+    # happens during the first seconds of recovery.
+    start adbd
+    setprop sys.usb.config adb
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
     write /config/usb_gadget/g1/UDC "none"
