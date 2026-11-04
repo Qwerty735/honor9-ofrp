@@ -232,7 +232,7 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            out/target/product/stanford/OrangeFox-*.img
-            out/target/product/stanford/OrangeFox-*.zip
+            out/target/product/stanford/*.img
+            out/target/product/stanford/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
