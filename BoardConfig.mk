@@ -58,6 +58,7 @@ BOARD_KERNEL_CMDLINE += androidboot.super_partition=system
 # The stock recovery_ramdisk header carries exactly this, and Huawei's kernel
 # side scripts look at ro.boot.buildvariant.
 BOARD_KERNEL_CMDLINE += buildvariant=user
+BOARD_KERNEL_CMDLINE += watchdog=0
 BOARD_KERNEL_OFFSET := 0x00008000
 BOARD_KERNEL_TAGS_OFFSET := 0x00000100
 BOARD_RAMDISK_OFFSET := 0x01000000
