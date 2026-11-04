@@ -212,3 +212,27 @@ jobs:
           name: ofrp-stanford
           path: artifacts/*
           if-no-files-found: warn
+
+      - name: Generate Release Tag
+        id: tag
+        run: |
+          echo "release_tag=OFRP-v$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          name: "OrangeFox Recovery 12.1 Unofficial — Honor 9"
+          body: |
+            ### Тестовая сборка OrangeFox Recovery 12.1 (Run #${{ github.run_number }})
+            - **Устройство:** Honor 9 (stanford / STF)
+            - **Исправления:** Проверена структура адресов ядра (`0x11000000`) и `BOARD_SECOND_OFFSET`.
+            - **Статус:** Автоматический билд.
+          draft: false
+          prerelease: true
+          files: |
+            out/target/product/stanford/OrangeFox-*.img
+            out/target/product/stanford/OrangeFox-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
