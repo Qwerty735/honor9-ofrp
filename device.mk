@@ -23,5 +23,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/keylayout/fingerprint.kl:$(TARGET_COPY_OUT_RECOVERY)/root/system/usr/keylayout/fingerprint.kl \
     $(LOCAL_PATH)/keylayout/touch_key.kl:$(TARGET_COPY_OUT_RECOVERY)/root/system/usr/keylayout/touch_key.kl \
     $(LOCAL_PATH)/recovery/root/init.recovery.hi3660.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.hi3660.rc \
+    $(LOCAL_PATH)/recovery/root/system/bin/fixlinks.sh:$(TARGET_COPY_OUT_RECOVERY)/root/system/bin/fixlinks.sh \
     $(LOCAL_PATH)/recovery/root/system/bin/logdump.sh:$(TARGET_COPY_OUT_RECOVERY)/root/system/bin/logdump.sh \
     $(LOCAL_PATH)/recovery/root/system/etc/twrp.flags:$(TARGET_COPY_OUT_RECOVERY)/root/system/etc/twrp.flags

@@ -169,6 +169,7 @@ jobs:
               b'system/bin/recovery',
               b'system/bin/twrp',
               b'system/bin/bfm-ctl',
+              b'system/bin/fixlinks.sh',
               b'system/bin/logdump.sh',
               b'system/etc/recovery.fstab',
               b'system/etc/twrp.flags',

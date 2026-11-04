@@ -15,6 +15,21 @@ CACHE_LOG=/cache/logdump.txt
 CACHE_PSTORE=/cache/pstore-last.txt
 
 CACHE_MOUNTED=0
+SD_MOUNTED=0
+BL=/sys/class/leds/lcd_backlight0/brightness
+
+# Visible "userspace is alive" signal: three quick backlight blinks right
+# before recovery starts. If the splash shows up but never blinks, init never
+# reached this point and the problem is earlier than userspace.
+blink() {
+    [ -w "$BL" ] || return 0
+    for _ in 1 2 3; do
+        echo 0 > "$BL" 2>/dev/null
+        sleep 0.25
+        echo 1573 > "$BL" 2>/dev/null
+        sleep 0.25
+    done
+}
 
 mount_cache() {
     [ "$CACHE_MOUNTED" = "1" ] && return 0
@@ -25,6 +40,22 @@ mount_cache() {
             CACHE_MOUNTED=1
             return 0
         fi
+    done
+    return 1
+}
+
+# A working microSD is the only log sink that survives a bootloop without adb.
+mount_sd() {
+    [ "$SD_MOUNTED" = "1" ] && return 0
+    grep -q " /external_sd " /proc/mounts && SD_MOUNTED=1 && return 0
+    mkdir -p /external_sd 2>/dev/null
+    for dev in /dev/block/mmcblk1p1 /dev/block/mmcblk1; do
+        for fs in vfat exfat ext4; do
+            if mount -t "$fs" -o rw "$dev" /external_sd 2>/dev/null; then
+                SD_MOUNTED=1
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -43,6 +74,7 @@ dump_pstore() {
 }
 
 echo "logdump: started $(date)" > "$OUT"
+blink
 dump_pstore
 
 i=0
@@ -62,6 +94,11 @@ while true; do
 
     if mount_cache; then
         cp "$OUT" "$CACHE_LOG" 2>/dev/null
+        sync
+    fi
+    if mount_sd; then
+        cp "$OUT" /external_sd/logdump.txt 2>/dev/null
+        cp "$CACHE_PSTORE" /external_sd/pstore-last.txt 2>/dev/null
         sync
     fi
     sleep 5

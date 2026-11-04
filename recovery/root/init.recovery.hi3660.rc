@@ -24,16 +24,20 @@ service logdump /system/bin/sh /system/bin/logdump.sh
     user root
     group root system
 
+# Maps Huawei's platform/by-name paths onto the Android 12 layout before
+# anything tries to mount a partition.
+service fixlinks /system/bin/sh /system/bin/fixlinks.sh
+    oneshot
+    disabled
+
+on post-fs
+    start fixlinks
+
 on init
     mkdir /mnt/system 0755 system system
     mkdir /config 0770 root root
     setprop sys.usb.configfs 1
     setprop sys.usb.controller ff100000.dwc3
-    # Stock Huawei userspace (and their updater) reach the partitions through
-    # /dev/block/bootdevice; everything else here uses /dev/block/by-name.
-    symlink /dev/block/platform/${ro.boot.boot_devices} /dev/block/bootdevice
-    # TWRP expects the boot ramdisk as "ramdisk"; Huawei names it "kernel".
-    symlink /dev/block/by-name/kernel /dev/block/by-name/ramdisk
 
 on boot
     # OrangeFox's init.rc turns every kernel oops into a panic ("write

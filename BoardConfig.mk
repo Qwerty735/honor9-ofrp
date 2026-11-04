@@ -45,6 +45,12 @@ BOARD_KERNEL_IMAGE_NAME := Image.gz
 BOARD_BOOT_HEADER_VERSION := 0
 BOARD_KERNEL_CMDLINE := loglevel=4 initcall_debug=n page_tracker=on slub_min_objects=16 unmovable_isolate1=2:192M,3:224M,4:256M printktimer=0xfff0a000,0x534,0x538
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
+# Android 12's ueventd only creates the /dev/block/by-name/* symlinks for the
+# devices listed in ro.boot.boot_devices. Recovery's fstab and twrp.flags are
+# written against that layout, so make sure the UFS controller (and the
+# hardware name used by init.recovery.${ro.hardware}.rc) are always known.
+BOARD_KERNEL_CMDLINE += androidboot.boot_devices=ff3b0000.ufs,hi_mci.1
+BOARD_KERNEL_CMDLINE += androidboot.hardware=hi3660
 # Honor 9 keeps the dynamic-partition (super) metadata on the "system"
 # partition; TWRP resolves it through ro.boot.super_partition, so without this
 # all logical partitions (system/vendor/product/...) get dropped at boot.
