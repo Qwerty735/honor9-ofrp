@@ -17,6 +17,7 @@ service bfm-ctl /system/bin/bfm-ctl
     user root
     group root system
     oneshot
+    disabled
 
 # Keeps dmesg/logcat on /cache so a bootloop can be analysed afterwards.
 service logdump /system/bin/sh /system/bin/logdump.sh
