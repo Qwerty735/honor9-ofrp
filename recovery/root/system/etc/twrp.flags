@@ -23,4 +23,4 @@
 /splash2 ext4 /dev/block/by-name/splash2 flags=display="Splash2";backup=1
 
 /external_sd auto /dev/block/mmcblk1p1 /dev/block/mmcblk1 flags=display="MicroSD";storage;wipeingui;removable
-/usb-otg auto /dev/block/sda1 /dev/block/sda flags=display="USB-OTG";storage;wipeingui;removable;backup=0
+/usb_otg auto /dev/block/sda1 /dev/block/sdb1 flags=display="USB-OTG";storage;wipeingui;removable;backup=0

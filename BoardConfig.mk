@@ -32,7 +32,14 @@ TARGET_NO_BOOTLOADER := true
 TARGET_BOARD_PLATFORM := hi3660
 
 # Kernel (stock recovery_ramdisk has kernel_size=0; kernel lives in the kernel partition)
-BOARD_KERNEL_BASE := 0x00078000
+#
+# These load addresses MUST match the stock EMUI recovery_ramdisk (verified
+# against the stock image: kernel_addr 0x10008000, ramdisk_addr 0x11000000,
+# second_addr 0x10f00000, tags_addr 0x10000100). The HiSilicon bootloader
+# honours the boot image header, and the stock kernel expects the ramdisk and
+# DTB at exactly those addresses - any other value panics before init runs,
+# which shows up as a reboot loop on the boot logo.
+BOARD_KERNEL_BASE := 0x10000000
 BOARD_KERNEL_PAGESIZE := 2048
 BOARD_KERNEL_IMAGE_NAME := Image.gz
 BOARD_BOOT_HEADER_VERSION := 0
@@ -42,15 +49,26 @@ BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
 # partition; TWRP resolves it through ro.boot.super_partition, so without this
 # all logical partitions (system/vendor/product/...) get dropped at boot.
 BOARD_KERNEL_CMDLINE += androidboot.super_partition=system
+# The stock recovery_ramdisk header carries exactly this, and Huawei's kernel
+# side scripts look at ro.boot.buildvariant.
+BOARD_KERNEL_CMDLINE += buildvariant=user
 BOARD_KERNEL_OFFSET := 0x00008000
-BOARD_KERNEL_TAGS_OFFSET := 0x07988000
-BOARD_RAMDISK_OFFSET := 0x07b88000
-BOARD_SECOND_OFFSET := 0x00e88000
+BOARD_KERNEL_TAGS_OFFSET := 0x00000100
+BOARD_RAMDISK_OFFSET := 0x01000000
+BOARD_SECOND_OFFSET := 0x00f00000
 BOARD_MKBOOTIMG_ARGS := --kernel_offset $(BOARD_KERNEL_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --ramdisk_offset $(BOARD_RAMDISK_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --second_offset $(BOARD_SECOND_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION)
+# The recovery image target in AOSP 12.1 does not pass --cmdline at all (only
+# the normal boot image does), which leaves the header cmdline empty. Pass it
+# explicitly, otherwise androidboot.selinux=permissive and
+# androidboot.super_partition=system never reach the kernel.
+BOARD_MKBOOTIMG_ARGS += --cmdline "$(BOARD_KERNEL_CMDLINE)"
+# Match the stock header's os_version/os_patch_level exactly (Android 9.0.0,
+# 2019-07). The HiSilicon bootloader gets confused by newer values.
+BOARD_MKBOOTIMG_ARGS += --os_version 9.0.0 --os_patch_level 2019-07
 
 # Android 10+ dropped BOARD_CUSTOM_BOOTIMG_MK, so use the supported flag to
 # build recovery without a kernel at all (mkbootimg gets no --kernel).

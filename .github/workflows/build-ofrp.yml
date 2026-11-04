@@ -97,18 +97,88 @@ jobs:
               print("no recovery images found")
               sys.exit(0)
 
+          # The HiSilicon bootloader and the stock kernel only accept the load
+          # addresses used by the stock EMUI recovery_ramdisk. Anything else
+          # panics before init runs (visible as a reboot loop on the logo).
+          EXPECTED = {
+              'kernel_addr': 0x10008000,
+              'ramdisk_addr': 0x11000000,
+              'second_addr': 0x10f00000,
+              'tags_addr': 0x10000100,
+          }
+          REQUIRED_CMDLINE = ('androidboot.selinux=permissive',
+                              'androidboot.super_partition=system')
+
+          ok = True
           for path in images:
               with open(path, 'rb') as f:
                   data = f.read(1632)
               if data[:8] != b'ANDROID!':
                   print(f"{path}: BAD MAGIC {data[:8]!r}")
                   sys.exit(1)
-              kernel_size, = struct.unpack('<I', data[8:12])
-              ramdisk_size, = struct.unpack('<I', data[16:20])
-              print(f"{path}: kernel_size={kernel_size} ramdisk_size={ramdisk_size}")
+              fields = struct.unpack('<8I', data[8:40])
+              kernel_size, kernel_addr, ramdisk_size, ramdisk_addr, \
+                  second_size, second_addr, tags_addr, page_size = fields
+              header_version, os_version = struct.unpack('<2I', data[40:48])
+              cmdline = data[64:1088].split(b'\0', 1)[0].decode('ascii', 'replace')
+              print(f"{path}:")
+              print(f"  kernel_size={kernel_size} ramdisk_size={ramdisk_size} "
+                    f"page_size={page_size} header_version={header_version}")
+              print(f"  kernel_addr={kernel_addr:#x} ramdisk_addr={ramdisk_addr:#x} "
+                    f"second_addr={second_addr:#x} tags_addr={tags_addr:#x}")
+              print(f"  os_version={os_version:#x}")
+              print(f"  cmdline={cmdline!r}")
               if kernel_size != 0:
                   print("ERROR: kernel must not be embedded in recovery_ramdisk")
-                  sys.exit(1)
+                  ok = False
+              for name, want in EXPECTED.items():
+                  got = {'kernel_addr': kernel_addr, 'ramdisk_addr': ramdisk_addr,
+                         'second_addr': second_addr, 'tags_addr': tags_addr}[name]
+                  if got != want:
+                      print(f"ERROR: {name} is {got:#x}, expected {want:#x}")
+                      ok = False
+              for want in REQUIRED_CMDLINE:
+                  if want not in cmdline:
+                      print(f"ERROR: cmdline is missing {want}")
+                      ok = False
+          if not ok:
+              sys.exit(1)
+          EOF
+
+      - name: Verify recovery ramdisk contents
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import glob, gzip, os, sys
+
+          ramdisks = glob.glob('fox_12.1/out/target/product/stanford/ramdisk-recovery.img')
+          if not ramdisks:
+              print("no ramdisk-recovery.img found")
+              sys.exit(0)
+
+          required = [
+              b'system/bin/init',
+              b'system/bin/recovery',
+              b'system/bin/twrp',
+              b'system/etc/recovery.fstab',
+              b'system/etc/twrp.flags',
+              b'init.rc',
+              b'init.recovery.hi3660.rc',
+          ]
+          ok = True
+          for path in ramdisks:
+              raw = open(path, 'rb').read()
+              try:
+                  blob = gzip.decompress(raw)
+              except OSError:
+                  blob = raw
+              print(f"{path}: {len(raw)} bytes compressed, {len(blob)} uncompressed")
+              for name in required:
+                  found = name in blob
+                  print(f"  {'OK  ' if found else 'MISS'} {name.decode()}")
+                  ok = ok and found
+          if not ok:
+              sys.exit(1)
           EOF
 
       - name: Collect artifacts
