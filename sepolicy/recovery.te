@@ -1,0 +1,8 @@
+# Разрешаем контексту ядра искать и читать директорию block_device
+allow kernel block_device:dir { search open read };
+
+# Если ругнётся на отсутствие прав к самому типу block_device
+allow kernel block_device:blk_file { getattr };
+
+# Разрешаем ядру обрабатывать свои внутренние задачи аудита без падения
+dontaudit kernel block_device:dir search;
