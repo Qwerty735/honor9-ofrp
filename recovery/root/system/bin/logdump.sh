@@ -26,7 +26,7 @@ KMSG=/dev/kmsg
 # Lines worth reading when the device reboots before anything can be pulled.
 # Kept separate from the full dump so the interesting part fits in a chat
 # message.
-FILTER='critical|powerctl|exited|crash|reboot|Reboot|rebooting|on-failure|FATAL|fatal|watchdog|ueventd|charger|keystore|boot_completed|coldboot|cold_boot|Service '
+FILTER='critical|powerctl|exited|crash|reboot|Reboot|rebooting|on-failure|FATAL|fatal|watchdog|ueventd|charger|keystore|boot_completed|coldboot|cold_boot|Service |bfm|BFM|boot stage|init_watchdog|sp805|panic'
 
 kmsg() {
     [ -w "$KMSG" ] || return 0
@@ -126,10 +126,10 @@ while true; do
     i=$((i + 1))
     {
         echo "===== tick $i $(date) uptime=$(cat /proc/uptime) ====="
-        echo "----- dmesg -----"
-        dmesg
-        echo "----- logcat (all buffers) -----"
-        logcat -b all -d -v threadtime 2>/dev/null
+        echo "----- dmesg (last 3000 lines) -----"
+        dmesg 2>/dev/null | tail -n 3000
+        echo "----- logcat (all buffers, last 2000 lines) -----"
+        logcat -b all -d -v threadtime 2>/dev/null | tail -n 2000
         echo "----- init service state -----"
         getprop | grep -E '^\[(init\.svc|sys\.boot_completed|ro\.cold_boot_done|ro\.hardware|sys\.usb)'
         echo "----- ps -----"
@@ -139,7 +139,19 @@ while true; do
         echo "----- by-name -----"
         ls -l /dev/block/by-name 2>/dev/null
         echo "----- hw_bfm -----"
+        cat /sys/class/misc/hw_bfm/dev 2>/dev/null
         ls -l /dev/hw_bfm 2>/dev/null
+        cat /sys/class/misc/hw_bfm/uevent 2>/dev/null
+        echo "----- watchdog -----"
+        for w in /sys/class/watchdog/watchdog*; do
+            [ -e "$w" ] || continue
+            echo "$w:"
+            for a in identity state timeout timeleft bootstatus nowayout pretimeout; do
+                [ -r "$w/$a" ] && echo "  $a=$(cat "$w/$a" 2>/dev/null)"
+            done
+        done
+        echo "init_watchdog=$(cat /sys/kernel/init_watchdog/init 2>/dev/null)"
+        cat /proc/sys/kernel/panic /proc/sys/kernel/panic_on_oops 2>/dev/null
         echo "----- selinux -----"
         cat /sys/fs/selinux/enforce 2>/dev/null
         echo "----- backlight -----"
@@ -155,7 +167,10 @@ while true; do
         echo "----- init service state -----"
         getprop | grep -E '^\[(init\.svc|sys\.boot_completed|ro\.cold_boot_done|ro\.hardware|sys\.usb)'
         echo "----- reboot-related lines -----"
-        grep -Ei "$FILTER" "$OUT" 2>/dev/null | grep -v 'OFRP-DIAG:' | grep -v 'avc: denied'
+        grep -Ei "$FILTER" "$OUT" 2>/dev/null | grep -v 'OFRP-DIAG:' | grep -v 'avc: denied' \
+            | grep -v 'watchdog kick now' | grep -v 'lcdkit_esd_check' \
+            | grep -v 'coul_ntc_temperature' | grep -v 'stably temp' \
+            | tail -n 60
         echo "----- avc denials (unique) -----"
         grep 'avc: denied' "$OUT" 2>/dev/null | sed 's/.*avc: denied/avc: denied/' \
             | sort -u | head -n 20

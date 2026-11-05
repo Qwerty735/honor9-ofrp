@@ -12,9 +12,11 @@
 # The Huawei android_usb driver needs port_mode writes for the USB switch to
 # route the port to the AP; values are the same ones the stock ROM uses.
 
-# NOTE: this must NOT be disabled. The BFM timer reboots the device roughly
-# 60 s after boot when userspace has not reported a successful boot, which is
-# exactly the symptom being chased here.
+# Huawei's own init reports the boot progress to /dev/hw_bfm and finally marks
+# the boot as successful; TWRP/OrangeFox does neither, so the session stays in
+# "boot not finished" state for the platform (see bfm-ctl.c). This must NOT be
+# disabled: a parallel commit did that by accident and the ~60 s reboot came
+# back.
 service bfm-ctl /system/bin/bfm-ctl
     class default
     user root
@@ -70,6 +72,10 @@ on early-init
     # rpmb_ready_task), so switch enforcement off from userspace as well.
     write /sys/fs/selinux/enforce 0
     write /dev/kmsg OFRP-RC:early-init-done
+    # Tell the platform the boot succeeded as early as possible; the stock
+    # userspace does this within its first seconds.
+    start bfm-ctl
+    write /dev/kmsg OFRP-RC:bfm-ctl-started
     # Start the log collector before anything else so the first seconds of
     # recovery are captured too.
     start logdump
