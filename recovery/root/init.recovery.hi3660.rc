@@ -24,6 +24,7 @@ service logdump /system/bin/sh /system/bin/logdump.sh
     class default
     user root
     group root system
+    disabled
 
 # Maps Huawei's platform/by-name paths onto the Android 12 layout before
 # anything tries to mount a partition.
@@ -32,15 +33,42 @@ service fixlinks /system/bin/sh /system/bin/fixlinks.sh
     disabled
 
 on post-fs
+    write /dev/kmsg OFRP-RC:post-fs
     start fixlinks
 
+on early-init
+    # AOSP init reboots the whole device when a service marked "critical"
+    # (ueventd, charger, logd) dies five times within four minutes. On this
+    # device the recovery reaches the splash, sits there for ~60 s and then
+    # pid 1 calls reboot() - exactly the signature of that fatal crash loop.
+    # Opt out of the fatal path so the log collector survives instead of the
+    # device rebooting. These markers let us tell from pstore/dmesg how far
+    # init actually got, without depending on logdump.
+    write /dev/kmsg OFRP-RC:early-init
+    setprop init.svc_debug.no_fatal.ueventd 1
+    setprop init.svc_debug.no_fatal.charger 1
+    setprop init.svc_debug.no_fatal.logd 1
+    # androidboot.selinux=permissive no longer reaches the kernel on this
+    # bootloader (dmesg still shows "avc: denied ... permissive=0" from
+    # rpmb_ready_task), so switch enforcement off from userspace as well.
+    write /sys/fs/selinux/enforce 0
+    write /dev/kmsg OFRP-RC:early-init-done
+    # Start the log collector before anything else so the first seconds of
+    # recovery are captured too.
+    start logdump
+    write /dev/kmsg OFRP-RC:logdump-started
+
 on init
+    write /dev/kmsg OFRP-RC:init
     mkdir /mnt/system 0755 system system
     mkdir /config 0770 root root
     setprop sys.usb.configfs 1
     setprop sys.usb.controller ff100000.dwc3
+    setprop init.svc_debug.no_fatal.ueventd 1
+    write /sys/fs/selinux/enforce 0
 
 on boot
+    write /dev/kmsg OFRP-RC:boot
     # OrangeFox's init.rc turns every kernel oops into a panic ("write
     # /proc/sys/kernel/panic_on_oops 1"). A single bad driver in the stock
     # Huawei kernel then kills the whole recovery before the UI comes up, which
@@ -55,6 +83,7 @@ on boot
     # happens during the first seconds of recovery.
     start adbd
     setprop sys.usb.config adb
+    write /dev/kmsg OFRP-RC:adbd-start-requested
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
     write /config/usb_gadget/g1/UDC "none"
