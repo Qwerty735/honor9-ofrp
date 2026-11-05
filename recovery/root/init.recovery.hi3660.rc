@@ -12,12 +12,14 @@
 # The Huawei android_usb driver needs port_mode writes for the USB switch to
 # route the port to the AP; values are the same ones the stock ROM uses.
 
+# NOTE: this must NOT be disabled. The BFM timer reboots the device roughly
+# 60 s after boot when userspace has not reported a successful boot, which is
+# exactly the symptom being chased here.
 service bfm-ctl /system/bin/bfm-ctl
     class default
     user root
     group root system
     oneshot
-    disabled
 
 # Keeps dmesg/logcat on /cache so a bootloop can be analysed afterwards.
 service logdump /system/bin/sh /system/bin/logdump.sh
@@ -30,6 +32,21 @@ service logdump /system/bin/sh /system/bin/logdump.sh
 # anything tries to mount a partition.
 service fixlinks /system/bin/sh /system/bin/fixlinks.sh
     oneshot
+    disabled
+
+# TWRP's keystore2.rc starts /system/bin/keystore2 from late-init but never
+# declares its AIDL interface. servicemanager treats keystore2 as a lazy HAL
+# (the ramdisk ships its VINTF manifest), so whenever something asks for it
+# init answers "Could not find 'aidl/android.system.keystore2.IKeystoreService
+# /default' for ctl.interface_start" - thousands of times per minute, which is
+# exactly the flood seen right up to the reboot. Declaring the interface here
+# lets init resolve the request and actually start the daemon.
+service keystore2_lazy /system/bin/keystore2 /tmp/misc/keystore
+    class early_hal
+    user root
+    group keystore readproc log
+    interface aidl android.system.keystore2.IKeystoreService/default
+    seclabel u:r:recovery:s0
     disabled
 
 on post-fs

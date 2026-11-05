@@ -8,6 +8,9 @@ ro.adb.secure=0
 ro.secure=0
 ro.debuggable=1
 ro.vendor.camera.platform_name=STF
-# Отключаем Keystore 2 и принудительную инициализацию аппаратного хранилища
+# Keep vold/TWRP away from metadata encryption and Keystore 2: on this
+# recovery neither can work (the ramdisk has no usable TEE/keystore
+# implementation) and the failed keystore2 interface lookups are what floods
+# the kernel log right before the reboot.
 ro.crypto.volume.metadata.encryption=false
 ro.crypto.state=unsupported

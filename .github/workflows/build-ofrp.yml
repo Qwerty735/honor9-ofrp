@@ -213,6 +213,14 @@ jobs:
           path: artifacts/*
           if-no-files-found: warn
 
+      - name: Checksums
+        if: always()
+        run: |
+          cd artifacts
+          rm -f SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt || true
+          cat SHA256SUMS.txt || true
+
       - name: Generate Release Tag
         id: tag
         run: |
@@ -223,16 +231,18 @@ jobs:
         if: success()
         with:
           tag_name: ${{ steps.tag.outputs.release_tag }}
-          name: "OrangeFox Recovery 12.1 Unofficial — Honor 9"
+          name: "OrangeFox Recovery 12.1 - Honor 9 (stanford)"
           body: |
-            ### Тестовая сборка OrangeFox Recovery 12.1 (Run #${{ github.run_number }})
-            - **Устройство:** Honor 9 (stanford / STF)
-            - **Исправления:** Проверена структура адресов ядра (`0x11000000`) и `BOARD_SECOND_OFFSET`.
-            - **Статус:** Автоматический билд.
+            ### OrangeFox Recovery 12.1 test build (run #${{ github.run_number }})
+            - **Device:** Honor 9 (STF-L09, stanford / hi3660)
+            - **Commit:** `${{ github.sha }}`
+            - **Status:** automatic build, needs testing on the device
+            - **Install:** `fastboot flash recovery_ramdisk OrangeFox-*.img`
           draft: false
           prerelease: true
           files: |
-            out/target/product/stanford/*.img
-            out/target/product/stanford/*.zip
+            artifacts/*.img
+            artifacts/*.zip
+            artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
