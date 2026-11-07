@@ -1,11 +1,6 @@
-# также взято из twrp gaguga 3.2.1-0 
-# blk_device                                    mount_point fs_type  mnt_flags           fs_mgr_flags
-
-# Загрузочные и сервисные raw-разделы (emmc)
-/dev/block/bootdevice/by-name/kernel            /kernel     emmc     defaults            defaults
-/dev/block/bootdevice/by-name/recovery_ramdisk  /recovery   emmc     defaults            defaults
-/dev/block/bootdevice/by-name/erecovery_ramdisk /e_recovery emmc     defaults            defaults
-/dev/block/bootdevice/by-name/misc              /misc       emmc     defaults            defaults
-/dev/block/bootdevice/by-name/oeminfo           /oeminfo    emmc     defaults            defaults
-/dev/block/bootdevice/by-name/frp               /frp        emmc     defaults            defaults
-
+# blk_device              mount_point  fs_type  mnt_flags     fs_mgr_flags
+/dev/block/mmcblk0p17     /cache       ext4     nosuid,nodev  wait
+/dev/block/mmcblk0p56     /vendor      ext4     ro            wait
+/dev/block/mmcblk0p57     /product     ext4     ro            wait
+/dev/block/mmcblk0p59     /system      ext4     ro            wait
+/dev/block/mmcblk0p64     /data        f2fs     nosuid,nodev  wait
