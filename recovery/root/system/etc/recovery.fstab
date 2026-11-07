@@ -1,17 +1,26 @@
-# mount point    fstype    device                    device2              flags
-/cache           ext4      /dev/block/mmcblk0p17
-/odm             ext4      /dev/block/mmcblk0p18                          flags=display="ODM";backup=1;wipeingui
-/version         ext4      /dev/block/mmcblk0p55                          flags=display="Version";backup=1;wipeingui
-/vendor          ext4      /dev/block/mmcblk0p56                          flags=display="Vendor";backup=1;wipeingui
-/vendor_image    emmc      /dev/block/mmcblk0p56                          flags=display="Vendor Image";backup=1;flashimg=1
-/product         ext4      /dev/block/mmcblk0p57                          flags=display="Product";backup=1;wipeingui
-/product_image   emmc      /dev/block/mmcblk0p57                          flags=display="Product Image";backup=1;flashimg=1
-/cust            ext4      /dev/block/mmcblk0p58                          flags=display="Cust";backup=1;wipeingui
-/system          ext4      /dev/block/mmcblk0p59                          flags=display="System";backup=1;wipeingui
-/system_image    emmc      /dev/block/mmcblk0p59                          flags=display="System Image";backup=1;flashimg=1
-/data            f2fs      /dev/block/mmcblk0p64                          flags=fileencryption=aes-256-xts:aes-256-cts;encryptable=footer
+# также взято из twrp gaguga 3.2.1-0 
+# blk_device                                    mount_point fs_type  mnt_flags           fs_mgr_flags
 
-# Внешние накопители (обязательно для OrangeFox)
-/external_sd     auto      /dev/block/mmcblk1p1      /dev/block/mmcblk1   flags=display="MicroSD";storage;wipeingui;removable
-/usb-otg         auto      /dev/block/sda1           /dev/block/sda       flags=display="USB OTG";storage;wipeingui;removable
+# Основные разделы системы и прошивки
+/dev/block/bootdevice/by-name/system            /system     ext4     ro                  wait
+/dev/block/bootdevice/by-name/vendor            /vendor     ext4     ro                  wait
+/dev/block/bootdevice/by-name/product           /product    ext4     ro                  wait
+/dev/block/bootdevice/by-name/odm               /odm        ext4     ro                  wait
+/dev/block/bootdevice/by-name/cust              /cust       ext4     ro                  wait
+/dev/block/bootdevice/by-name/version           /version    ext4     ro                  wait
 
+# Пользовательские данные и кэш
+/dev/block/bootdevice/by-name/cache             /cache      ext4     nosuid,nodev        wait
+/dev/block/bootdevice/by-name/userdata          /data       f2fs     nosuid,nodev        wait,length=-16384,fileencryption=aes-256-xts:aes-256-cts,reservedsize=20M
+
+# Загрузочные и сервисные raw-разделы (emmc)
+/dev/block/bootdevice/by-name/kernel            /kernel     emmc     defaults            defaults
+/dev/block/bootdevice/by-name/recovery_ramdisk  /recovery   emmc     defaults            defaults
+/dev/block/bootdevice/by-name/erecovery_ramdisk /e_recovery emmc     defaults            defaults
+/dev/block/bootdevice/by-name/misc              /misc       emmc     defaults            defaults
+/dev/block/bootdevice/by-name/oeminfo           /oeminfo    emmc     defaults            defaults
+/dev/block/bootdevice/by-name/frp               /frp        emmc     defaults            defaults
+
+# Внешние накопители
+/dev/block/mmcblk1p1                            /external_sd vfat    defaults            defaults
+/dev/block/sde1                                 /usb-otg    vfat     defaults            defaults
