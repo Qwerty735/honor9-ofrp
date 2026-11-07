@@ -11,7 +11,7 @@
 
 # Пользовательские данные и кэш (с точными флагами из vendor)
 /cache           ext4      /dev/block/bootdevice/by-name/cache                                       flags=display="Cache";backup=1;wipeingui
-/data            f2fs      /dev/block/bootdevice/by-name/userdata                                    flags=display="Data";backup=1;wipeingui;length=-16384;fileencryption=aes-256-xts:aes-256-cts
+/data            f2fs      /dev/block/bootdevice/by-name/userdata                                    flags=display="Data";backup=1;wipeingui
 
 # Разделы ядра, рекавери и загрузки
 /kernel          emmc      /dev/block/bootdevice/by-name/kernel                                      flags=display="Kernel";backup=1;flashimg=1
