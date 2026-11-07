@@ -1,36 +1,26 @@
-# перенесено из twrp gaguga 3.2.1-0, спасиб, гагуга
-# mount point    fstype    device                                               device2              flags
+# mount point    fstype    device                    device2              flags
 
-# Основные системные разделы (монтируемые)
-/system          ext4      /dev/block/bootdevice/by-name/system                                      flags=display="System";backup=1;wipeingui
-/vendor          ext4      /dev/block/bootdevice/by-name/vendor                                      flags=display="Vendor";backup=1;wipeingui
-/product         ext4      /dev/block/bootdevice/by-name/product                                     flags=display="Product";backup=1;wipeingui
-/odm             ext4      /dev/block/bootdevice/by-name/odm                                         flags=display="ODM";backup=1;wipeingui
-/cust            ext4      /dev/block/bootdevice/by-name/cust                                        flags=display="Cust";backup=1;wipeingui
-/version         ext4      /dev/block/bootdevice/by-name/version                                     flags=display="Version";backup=1;wipeingui
+# Дополнительные монтируемые разделы Huawei/Honor
+/odm             ext4      /dev/block/mmcblk0p18                          flags=display="ODM";backup=1;wipeingui
+/version         ext4      /dev/block/mmcblk0p55                          flags=display="Version";backup=1;wipeingui
+/cust            ext4      /dev/block/mmcblk0p58                          flags=display="Cust";backup=1;wipeingui
 
-# Пользовательские данные и кэш (с точными флагами из vendor)
-/cache           ext4      /dev/block/bootdevice/by-name/cache                                       flags=display="Cache";backup=1;wipeingui
-/data            f2fs      /dev/block/bootdevice/by-name/userdata                                    flags=display="Data";backup=1;wipeingui
-
-# Разделы ядра, рекавери и загрузки
-/kernel          emmc      /dev/block/bootdevice/by-name/kernel                                      flags=display="Kernel";backup=1;flashimg=1
-/recovery        emmc      /dev/block/bootdevice/by-name/recovery_ramdisk                            flags=display="Recovery";backup=1;flashimg=1
-/e_recovery      emmc      /dev/block/bootdevice/by-name/erecovery_ramdisk                           flags=display="eRecovery";backup=1;flashimg=1
-/misc            emmc      /dev/block/bootdevice/by-name/misc                                        flags=display="Misc"
+# Разделы ядра, рекавери и сервисные блоки (уточните номера mmcblk0pXX при необходимости)
+/misc            emmc      /dev/block/bootdevice/by-name/misc             flags=display="Misc"
+/kernel          emmc      /dev/block/bootdevice/by-name/kernel           flags=display="Kernel";backup=1;flashimg=1
+/recovery        emmc      /dev/block/bootdevice/by-name/recovery_ramdisk flags=display="Recovery";backup=1;flashimg=1
+/e_recovery      emmc      /dev/block/bootdevice/by-name/erecovery_ramdisk flags=display="eRecovery";backup=1;flashimg=1
+/oeminfo         emmc      /dev/block/bootdevice/by-name/oeminfo          flags=display="Oeminfo";backup=1;flashimg=1
+/frp             emmc      /dev/block/bootdevice/by-name/frp              flags=display="FRP";backup=1;flashimg=1
 
 # Образы разделов (для установки .img через рекавери)
-/system_image    emmc      /dev/block/bootdevice/by-name/system                                      flags=display="System Image";backup=1;flashimg=1
-/vendor_image    emmc      /dev/block/bootdevice/by-name/vendor                                      flags=display="Vendor Image";backup=1;flashimg=1
-/product_image   emmc      /dev/block/bootdevice/by-name/product                                     flags=display="Product Image";backup=1;flashimg=1
-/odm_image       emmc      /dev/block/bootdevice/by-name/odm                                         flags=display="ODM Image";backup=1;flashimg=1
-/cust_image      emmc      /dev/block/bootdevice/by-name/cust                                        flags=display="Cust Image";backup=1;flashimg=1
-/version_image   emmc      /dev/block/bootdevice/by-name/version                                     flags=display="Version Image";backup=1;flashimg=1
-
-# Сервисные и защищенные разделы (Oeminfo и FRP)
-/oeminfo         emmc      /dev/block/bootdevice/by-name/oeminfo                                     flags=display="Oeminfo";backup=1;flashimg=1
-/frp             emmc      /dev/block/bootdevice/by-name/frp                                         flags=display="FRP";backup=1;flashimg=1
+/system_image    emmc      /dev/block/mmcblk0p59                          flags=display="System Image";backup=1;flashimg=1
+/vendor_image    emmc      /dev/block/mmcblk0p56                          flags=display="Vendor Image";backup=1;flashimg=1
+/product_image   emmc      /dev/block/mmcblk0p57                          flags=display="Product Image";backup=1;flashimg=1
+/odm_image       emmc      /dev/block/mmcblk0p18                          flags=display="ODM Image";backup=1;flashimg=1
+/cust_image      emmc      /dev/block/mmcblk0p58                          flags=display="Cust Image";backup=1;flashimg=1
+/version_image   emmc      /dev/block/mmcblk0p55                          flags=display="Version Image";backup=1;flashimg=1
 
 # Внешние накопители
-/external_sd     auto      /dev/block/mmcblk1p1                                 /dev/block/mmcblk1   flags=display="MicroSD Card";storage;wipeingui;removable
-/usb-otg         auto      /dev/block/sde1                                      /dev/block/sde       flags=display="USB OTG";storage;wipeingui;removable
+/external_sd     auto      /dev/block/mmcblk1p1      /dev/block/mmcblk1   flags=display="MicroSD Card";storage;wipeingui;removable
+/usb-otg         auto      /dev/block/sde1           /dev/block/sde       flags=display="USB OTG";storage;wipeingui;removable
