@@ -5,13 +5,20 @@
 /version         ext4      /dev/block/mmcblk0p55                          flags=display="Version";backup=1;wipeingui
 /cust            ext4      /dev/block/mmcblk0p58                          flags=display="Cust";backup=1;wipeingui
 
-# Разделы ядра, рекавери и сервисные блоки (уточните номера mmcblk0pXX при необходимости)
-/misc            emmc      /dev/block/bootdevice/by-name/misc             flags=display="Misc"
-/kernel          emmc      /dev/block/bootdevice/by-name/kernel           flags=display="Kernel";backup=1;flashimg=1
-/recovery        emmc      /dev/block/bootdevice/by-name/recovery_ramdisk flags=display="Recovery";backup=1;flashimg=1
-/e_recovery      emmc      /dev/block/bootdevice/by-name/erecovery_ramdisk flags=display="eRecovery";backup=1;flashimg=1
-/oeminfo         emmc      /dev/block/bootdevice/by-name/oeminfo          flags=display="Oeminfo";backup=1;flashimg=1
-/frp             emmc      /dev/block/bootdevice/by-name/frp              flags=display="FRP";backup=1;flashimg=1
+# Образы системных разделов (для выбора при прошивке .img)
+/system_image    emmc      /dev/block/mmcblk0p59                          flags=display="System Image";backup=0;flashimg=1
+/vendor_image    emmc      /dev/block/mmcblk0p56                          flags=display="Vendor Image";backup=0;flashimg=1
+/product_image   emmc      /dev/block/mmcblk0p57                          flags=display="Product Image";backup=0;flashimg=1
+
+# Разделы ядра и рекавери (с выбором при прошивке .img)
+/kernel          emmc      /dev/block/mmcblk0p39                          flags=display="Kernel";backup=1;flashimg=1
+/recovery        emmc      /dev/block/mmcblk0p41                          flags=display="Recovery";backup=1;flashimg=1
+/e_recovery      emmc      /dev/block/mmcblk0p36                          flags=display="eRecovery";backup=1;flashimg=1
+
+# Сервисные блоки (только бэкап, без flashimg=1 для безопасности!)
+/misc            emmc      /dev/block/mmcblk0p20                          flags=display="Misc"
+/oeminfo         emmc      /dev/block/mmcblk0p9                           flags=display="Oeminfo";backup=1
+/frp             emmc      /dev/block/mmcblk0p1                           flags=display="FRP";backup=1
 
 # Внешние накопители
 /external_sd     auto      /dev/block/mmcblk1p1      /dev/block/mmcblk1   flags=display="MicroSD Card";storage;wipeingui;removable
