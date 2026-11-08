@@ -123,8 +123,8 @@ TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/recovery/root/system/etc/recovery.fstab
 RECOVERY_SDCARD_ON_DATA := true
 
 # Decryption (отключено для предотвращения падения Keymaster 3.0 на Kirin 960 в fox_12.1)
-TW_INCLUDE_CRYPTO := false
-TW_INCLUDE_CRYPTO_FBE := false
+TW_INCLUDE_CRYPTO := true
+TW_INCLUDE_CRYPTO_FBE := true
 TW_INCLUDE_FBE_METADATA_DECRYPT := false
 # TW_USE_FSCRYPT_POLICY := 1
 PLATFORM_SECURITY_PATCH := 2099-12-31
@@ -153,7 +153,7 @@ TW_NO_HAPTICS := true
 TW_NO_SCREEN_BLANK := true
 TW_BRIGHTNESS_PATH := /sys/class/leds/lcd_backlight0/brightness
 TW_MAX_BRIGHTNESS := 7992
-TW_DEFAULT_BRIGHTNESS := 1573
+TW_DEFAULT_BRIGHTNESS := 1000
 TW_CUSTOM_BATTERY_PATH := /sys/class/power_supply/Battery
 # The hi3660 kernel exposes the Huawei BCI battery through sysfs only; there is
 # no usable android.hardware.health HAL in this recovery (the manifest is
