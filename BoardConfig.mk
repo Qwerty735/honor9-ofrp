@@ -155,6 +155,12 @@ TW_BRIGHTNESS_PATH := /sys/class/leds/lcd_backlight0/brightness
 TW_MAX_BRIGHTNESS := 7992
 TW_DEFAULT_BRIGHTNESS := 1573
 TW_CUSTOM_BATTERY_PATH := /sys/class/power_supply/Battery
+# The hi3660 kernel exposes the Huawei BCI battery through sysfs only; there is
+# no usable android.hardware.health HAL in this recovery (the manifest is
+# present but no service binary is shipped), so the default health-service
+# battery path reads nothing and TWRP shows 0% / the "!" icon. Force the legacy
+# sysfs reader, which uses TW_CUSTOM_BATTERY_PATH.
+OF_USE_LEGACY_BATTERY_SERVICES := 1
 # %d is required: TWRP does sprintf(lun_file, CUSTOM_LUN_FILE, index).
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /config/usb_gadget/g1/functions/mass_storage.0/lun.%d/file
 TWRP_INCLUDE_LOGCAT := true
