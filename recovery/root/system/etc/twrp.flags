@@ -13,14 +13,6 @@
 /oeminfo         emmc      /dev/block/bootdevice/by-name/oeminfo          flags=display="Oeminfo";backup=1;flashimg=1
 /frp             emmc      /dev/block/bootdevice/by-name/frp              flags=display="FRP";backup=1;flashimg=1
 
-# Образы разделов (для установки .img через рекавери)
-/system_image    emmc      /dev/block/mmcblk0p59                          flags=display="System Image";backup=1;flashimg=1
-/vendor_image    emmc      /dev/block/mmcblk0p56                          flags=display="Vendor Image";backup=1;flashimg=1
-/product_image   emmc      /dev/block/mmcblk0p57                          flags=display="Product Image";backup=1;flashimg=1
-/odm_image       emmc      /dev/block/mmcblk0p18                          flags=display="ODM Image";backup=1;flashimg=1
-/cust_image      emmc      /dev/block/mmcblk0p58                          flags=display="Cust Image";backup=1;flashimg=1
-/version_image   emmc      /dev/block/mmcblk0p55                          flags=display="Version Image";backup=1;flashimg=1
-
 # Внешние накопители
 /external_sd     auto      /dev/block/mmcblk1p1      /dev/block/mmcblk1   flags=display="MicroSD Card";storage;wipeingui;removable
 /usb-otg         auto      /dev/block/sde1           /dev/block/sde       flags=display="USB OTG";storage;wipeingui;removable
