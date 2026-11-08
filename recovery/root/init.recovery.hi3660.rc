@@ -145,8 +145,6 @@ on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mass_storage,adb && p
 on post-fs-data
     stop teecd
     stop oeminfo_nvm
-    setprop ctl.stop teecd
-    setprop ctl.stop oeminfo_nvm
 
 on property:init.svc.teecd=restarting
     stop teecd
