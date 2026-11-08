@@ -1,4 +1,11 @@
 # blk_device              mount_point  fs_type  mnt_flags     fs_mgr_flags
+#
+# /misc is required by AOSP libfs_mgr (bootloader_message.cpp). Android init
+# writes the Huawei bootloader control block there for "reboot recovery" and
+# "reboot bootloader"; without this entry the write fails and init suppresses
+# the reboot completely. The 5th field is TWRP-only (libfs_mgr ignores fields
+# after fs_mgr_flags and TWRP parses it as a comma-separated flag list).
+/dev/block/mmcblk0p20     /misc        emmc     ro            wait,display="Misc"
 /dev/block/mmcblk0p17     /cache       ext4     nosuid,nodev  wait
 /dev/block/mmcblk0p56     /vendor      ext4     ro            wait
 /dev/block/mmcblk0p57     /product     ext4     ro            wait

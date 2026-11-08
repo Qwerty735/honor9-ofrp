@@ -175,6 +175,10 @@ jobs:
               b'system/etc/twrp.flags',
               b'init.rc',
               b'init.recovery.hi3660.rc',
+              # /misc must be in the fstab: Android init writes the BCB there
+              # for "reboot recovery" and suppresses the reboot if it fails.
+              b'/dev/block/mmcblk0p20',
+              b'wait,display="Misc"',
           ]
           ok = True
           for path in ramdisks:
