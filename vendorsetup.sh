@@ -23,7 +23,8 @@ if [ "$1" = "$FDEVICE" ] || [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
     export FOX_BUILD_DEVICE="$FDEVICE"
     export FOX_VARIANT="Huawei"
     export FOX_MAINTAINER_PATCH_VERSION="1"
-    export FOX_BUILD_TYPE="Unofficial"
+    export OF_MAINTAINER := Qwerty735
+    export FOX_BUILD_TYPE="Official"
     export FOX_VANILLA_BUILD=1
     export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
     export OF_FORCE_PREBUILT_KERNEL=1
