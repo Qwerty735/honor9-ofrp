@@ -1,3 +1,65 @@
+service bfm-ctl /system/bin/bfm-ctl
+    class default
+    user root
+    group root system
+    oneshot
+
+# Keeps dmesg/logcat on /cache so a bootloop can be analysed afterwards.
+service logdump /system/bin/sh /system/bin/logdump.sh
+    class default
+    user root
+    group root system
+    disabled
+
+# Maps Huawei's platform/by-name paths onto the Android 12 layout before
+# anything tries to mount a partition.
+service fixlinks /system/bin/sh /system/bin/fixlinks.sh
+    oneshot
+    disabled
+
+# TWRP's keystore2.rc starts /system/bin/keystore2 from late-init but never
+# declares its AIDL interface.
+service keystore2_lazy /system/bin/keystore2 /tmp/misc/keystore
+    class early_hal
+    user root
+    group keystore readproc log
+    interface aidl android.system.keystore2.IKeystoreService/default
+    seclabel u:r:recovery:s0
+    disabled
+
+# Huawei TrustZone & Crypto HAL services
+service teecd /vendor/bin/teecd
+    user root
+    group root system readproc
+    disabled
+    seclabel u:r:recovery:s0
+
+service vendor.keymaster-3-0 /vendor/bin/hw/android.hardware.keymaster@3.0-service
+    interface android.hardware.keymaster@3.0::IKeymasterDevice default
+    user root
+    group root drmrpc
+    disabled
+    seclabel u:r:recovery:s0
+
+service vendor.gatekeeper-1-0 /vendor/bin/hw/android.hardware.gatekeeper@1.0-service
+    interface android.hardware.gatekeeper@1.0::IGatekeeper default
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+on early-init
+    write /dev/kmsg OFRP-RC:early-init
+    setprop init.svc_debug.no_fatal.ueventd 1
+    setprop init.svc_debug.no_fatal.charger 1
+    setprop init.svc_debug.no_fatal.logd 1
+    write /sys/fs/selinux/enforce 0
+    write /dev/kmsg OFRP-RC:early-init-done
+    start bfm-ctl
+    write /dev/kmsg OFRP-RC:bfm-ctl-started
+    start logdump
+    write /dev/kmsg OFRP-RC:logdump-started
+
 on init
     write /dev/kmsg OFRP-RC:init
     mkdir /mnt/system 0755 system system
@@ -7,21 +69,21 @@ on init
     setprop init.svc_debug.no_fatal.ueventd 1
     write /sys/fs/selinux/enforce 0
 
-    # Права на драйверы TrustZone и шифрования Huawei
+    # Настройка прав на драйверы TrustZone и аппаратного шифрования Huawei
     chmod 0400 /dev/hisi_teelog
     chown root root /dev/hwaa
     chmod 0660 /dev/hwaa
 
 on fs
     write /dev/kmsg OFRP-RC:fs-start
-    # СНАЧАЛА принудительно создаем симлинки на блоки, иначе mount ниже упадет
+    # Ждём полного создания симлинков, прежде чем монтировать разделы
     exec_start fixlinks
 
-    # Монтируем раздел vendor (сначала пробуем ext4, если нет - erofs)
+    # Монтируем vendor (поддержка обоих форматов ФС)
     mount ext4 /dev/block/bootdevice/by-name/vendor /vendor ro wait
     mount erofs /dev/block/bootdevice/by-name/vendor /vendor ro wait
 
-    # Монтируем раздел хранения ключей TrustZone
+    # Монтируем раздел безопасного хранилища ключей Huawei
     mkdir /sec_storage 0700 root root
     mount ext4 /dev/block/bootdevice/by-name/secure_storage /sec_storage nosuid nodev noatime wait crypt discard,auto_da_alloc,mblk_io_submit,data=journal,context=u:object_r:teecd_data_file:s0
     chown root root /sec_storage
@@ -43,29 +105,43 @@ on boot
     setprop sys.usb.config adb
     write /dev/kmsg OFRP-RC:adbd-start-requested
 
-    # Запуск менеджера HIDL-интерфейсов и главного демона TrustZone
+    # Запуск крипто-связки для декрипта FBE
     start hwservicemanager
     start teecd
     start vendor.keymaster-3-0
     start vendor.gatekeeper-1-0
     write /dev/kmsg OFRP-RC:crypto-services-started
 
-service teecd /vendor/bin/teecd
-    user root
-    group root system readproc
-    disabled
-    seclabel u:r:recovery:s0
+on property:sys.usb.config=none && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    write /sys/devices/virtual/android_usb/android0/port_mode 1
 
-service vendor.keymaster-3-0 /vendor/bin/hw/android.hardware.keymaster@3.0-service
-    interface android.hardware.keymaster@3.0::IKeymasterDevice default
-    user root
-    group root drmrpc
-    disabled
-    seclabel u:r:recovery:s0
+on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mtp_adb"
+    start adbd
 
-service vendor.gatekeeper-1-0 /vendor/bin/hw/android.hardware.gatekeeper@1.0-service
-    interface android.hardware.gatekeeper@1.0::IGatekeeper default
-    user root
-    group root
-    disabled
-    seclabel u:r:recovery:s0
+on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
+    symlink /config/usb_gadget/g1/functions/mtp.gs0 /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    write /sys/devices/virtual/android_usb/android0/port_mode 4
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state ${sys.usb.config}
+
+on property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mass_storage_adb"
+    start adbd
+
+on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=1
+    symlink /config/usb_gadget/g1/functions/mass_storage.0 /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    write /sys/devices/virtual/android_usb/android0/port_mode 8
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state ${sys.usb.config}
