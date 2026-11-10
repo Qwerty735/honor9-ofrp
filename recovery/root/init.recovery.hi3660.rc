@@ -143,22 +143,29 @@ on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mass_storage,adb && p
     setprop sys.usb.state ${sys.usb.config}
 
 on init
-    # Настройка драйверов TrustZone и аппаратного шифрования Huawei
+    # Настройка прав на драйверы TrustZone и шифрования Huawei
     chmod 0400 /dev/hisi_teelog
     chown root root /dev/hwaa
     chmod 0660 /dev/hwaa
 
-    # Монтирование раздела безопасности Huawei
+on fs
+    # 1. Сначала монтируем физический раздел vendor (чтобы появились бинарники и библиотеки)
+    # Если у вас vendor сейчас в ext4, замените erofs на ext4 (или укажите оба варианта)
+    mount ext4 /dev/block/bootdevice/by-name/vendor /vendor ro wait
+    mount erofs /dev/block/bootdevice/by-name/vendor /vendor ro wait
+
+    # 2. Монтируем раздел безопасного хранилища ключей Huawei
     mkdir /sec_storage 0700 root root
     mount ext4 /dev/block/bootdevice/by-name/secure_storage /sec_storage nosuid nodev noatime wait crypt discard,auto_da_alloc,mblk_io_submit,data=journal,context=u:object_r:teecd_data_file:s0
     chown root root /sec_storage
     chmod 600 /sec_storage
 
 on boot
+    # 3. Создаем служебные папки (если раздел еще не зашифрован или уже открыт)
     mkdir /data/sec_storage_data 0700 system system
     mkdir /data/sec_storage_data_users 0700 system system
     
-    # Запуск крипто-связки
+    # 4. И ТОЛЬКО ТЕПЕРЬ запускаем сервисы из примонтированного /vendor
     start teecd
     start vendor.keymaster-3-0
     start vendor.gatekeeper-1-0
@@ -182,4 +189,3 @@ service vendor.gatekeeper-1-0 /vendor/bin/hw/android.hardware.gatekeeper@1.0-ser
     group root
     disabled
     seclabel u:r:recovery:s0
-
