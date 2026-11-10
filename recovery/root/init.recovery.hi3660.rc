@@ -1,86 +1,3 @@
-# Honor 9 (stanford / hi3660) recovery init
-#
-# The USB gadget itself is created by OrangeFox's /init.rc on "fs" as soon as
-# sys.usb.configfs=1, so this file only has to:
-#   * turn configfs mode on and point init at the dwc3 controller (otherwise
-#     nothing ever binds the gadget and there is no adb/MTP at all);
-#   * add the Huawei kernel USB functions (mtp.gs0 -> /dev/mtp_usb, and
-#     mass_storage.0 which matches TARGET_USE_CUSTOM_LUN_FILE_PATH);
-#   * provide the mtp/mass_storage property triggers, which OrangeFox does not
-#     ship (its /init.rc only knows adb/fastboot/sideload).
-#
-# The Huawei android_usb driver needs port_mode writes for the USB switch to
-# route the port to the AP; values are the same ones the stock ROM uses.
-
-# Huawei's own init reports the boot progress to /dev/hw_bfm and finally marks
-# the boot as successful; TWRP/OrangeFox does neither, so the session stays in
-# "boot not finished" state for the platform (see bfm-ctl.c). This must NOT be
-# disabled: a parallel commit did that by accident and the ~60 s reboot came
-# back.
-service bfm-ctl /system/bin/bfm-ctl
-    class default
-    user root
-    group root system
-    oneshot
-
-# Keeps dmesg/logcat on /cache so a bootloop can be analysed afterwards.
-service logdump /system/bin/sh /system/bin/logdump.sh
-    class default
-    user root
-    group root system
-    disabled
-
-# Maps Huawei's platform/by-name paths onto the Android 12 layout before
-# anything tries to mount a partition.
-service fixlinks /system/bin/sh /system/bin/fixlinks.sh
-    oneshot
-    disabled
-
-# TWRP's keystore2.rc starts /system/bin/keystore2 from late-init but never
-# declares its AIDL interface. servicemanager treats keystore2 as a lazy HAL
-# (the ramdisk ships its VINTF manifest), so whenever something asks for it
-# init answers "Could not find 'aidl/android.system.keystore2.IKeystoreService
-# /default' for ctl.interface_start" - thousands of times per minute, which is
-# exactly the flood seen right up to the reboot. Declaring the interface here
-# lets init resolve the request and actually start the daemon.
-service keystore2_lazy /system/bin/keystore2 /tmp/misc/keystore
-    class early_hal
-    user root
-    group keystore readproc log
-    interface aidl android.system.keystore2.IKeystoreService/default
-    seclabel u:r:recovery:s0
-    disabled
-
-on post-fs
-    write /dev/kmsg OFRP-RC:post-fs
-    start fixlinks
-
-on early-init
-    # AOSP init reboots the whole device when a service marked "critical"
-    # (ueventd, charger, logd) dies five times within four minutes. On this
-    # device the recovery reaches the splash, sits there for ~60 s and then
-    # pid 1 calls reboot() - exactly the signature of that fatal crash loop.
-    # Opt out of the fatal path so the log collector survives instead of the
-    # device rebooting. These markers let us tell from pstore/dmesg how far
-    # init actually got, without depending on logdump.
-    write /dev/kmsg OFRP-RC:early-init
-    setprop init.svc_debug.no_fatal.ueventd 1
-    setprop init.svc_debug.no_fatal.charger 1
-    setprop init.svc_debug.no_fatal.logd 1
-    # androidboot.selinux=permissive no longer reaches the kernel on this
-    # bootloader (dmesg still shows "avc: denied ... permissive=0" from
-    # rpmb_ready_task), so switch enforcement off from userspace as well.
-    write /sys/fs/selinux/enforce 0
-    write /dev/kmsg OFRP-RC:early-init-done
-    # Tell the platform the boot succeeded as early as possible; the stock
-    # userspace does this within its first seconds.
-    start bfm-ctl
-    write /dev/kmsg OFRP-RC:bfm-ctl-started
-    # Start the log collector before anything else so the first seconds of
-    # recovery are captured too.
-    start logdump
-    write /dev/kmsg OFRP-RC:logdump-started
-
 on init
     write /dev/kmsg OFRP-RC:init
     mkdir /mnt/system 0755 system system
@@ -90,85 +7,48 @@ on init
     setprop init.svc_debug.no_fatal.ueventd 1
     write /sys/fs/selinux/enforce 0
 
-on boot
-    write /dev/kmsg OFRP-RC:boot
-    # OrangeFox's init.rc turns every kernel oops into a panic ("write
-    # /proc/sys/kernel/panic_on_oops 1"). A single bad driver in the stock
-    # Huawei kernel then kills the whole recovery before the UI comes up, which
-    # is what a one-minute frozen splash followed by a reboot looks like. Keep
-    # the oops in dmesg instead and let userspace survive.
-    write /proc/sys/kernel/panic_on_oops 0
-    write /proc/sys/kernel/panic 0
-    write /sys/class/leds/lcd_backlight0/brightness 1573
-    mkdir /config/usb_gadget/g1/functions/mtp.gs0
-    mkdir /config/usb_gadget/g1/functions/mass_storage.0
-    # Make adb available as early as possible - it is the only way to see what
-    # happens during the first seconds of recovery.
-    start adbd
-    setprop sys.usb.config adb
-    write /dev/kmsg OFRP-RC:adbd-start-requested
-
-on property:sys.usb.config=none && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/UDC "none"
-    mkdir /config/usb_gadget/g1/functions/mtp.gs0
-    mkdir /config/usb_gadget/g1/functions/mass_storage.0
-    rm /config/usb_gadget/g1/configs/b.1/f1
-    rm /config/usb_gadget/g1/configs/b.1/f2
-    write /sys/devices/virtual/android_usb/android0/port_mode 1
-
-on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/UDC "none"
-    mkdir /config/usb_gadget/g1/functions/mtp.gs0
-    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mtp_adb"
-    start adbd
-
-on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
-    symlink /config/usb_gadget/g1/functions/mtp.gs0 /config/usb_gadget/g1/configs/b.1/f1
-    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
-    write /sys/devices/virtual/android_usb/android0/port_mode 4
-    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
-    setprop sys.usb.state ${sys.usb.config}
-
-on property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/UDC "none"
-    mkdir /config/usb_gadget/g1/functions/mass_storage.0
-    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mass_storage_adb"
-    start adbd
-
-on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mass_storage,adb && property:sys.usb.configfs=1
-    symlink /config/usb_gadget/g1/functions/mass_storage.0 /config/usb_gadget/g1/configs/b.1/f1
-    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
-    write /sys/devices/virtual/android_usb/android0/port_mode 8
-    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
-    setprop sys.usb.state ${sys.usb.config}
-
-on init
-    # Настройка прав на драйверы TrustZone и шифрования Huawei
+    # Права на драйверы TrustZone и шифрования Huawei
     chmod 0400 /dev/hisi_teelog
     chown root root /dev/hwaa
     chmod 0660 /dev/hwaa
 
 on fs
-    # 1. Сначала монтируем физический раздел vendor (чтобы появились бинарники и библиотеки)
-    # Если у вас vendor сейчас в ext4, замените erofs на ext4 (или укажите оба варианта)
+    write /dev/kmsg OFRP-RC:fs-start
+    # СНАЧАЛА принудительно создаем симлинки на блоки, иначе mount ниже упадет
+    exec_start fixlinks
+
+    # Монтируем раздел vendor (сначала пробуем ext4, если нет - erofs)
     mount ext4 /dev/block/bootdevice/by-name/vendor /vendor ro wait
     mount erofs /dev/block/bootdevice/by-name/vendor /vendor ro wait
 
-    # 2. Монтируем раздел безопасного хранилища ключей Huawei
+    # Монтируем раздел хранения ключей TrustZone
     mkdir /sec_storage 0700 root root
     mount ext4 /dev/block/bootdevice/by-name/secure_storage /sec_storage nosuid nodev noatime wait crypt discard,auto_da_alloc,mblk_io_submit,data=journal,context=u:object_r:teecd_data_file:s0
     chown root root /sec_storage
     chmod 600 /sec_storage
+    write /dev/kmsg OFRP-RC:fs-done
 
-on boot
-    # 3. Создаем служебные папки (если раздел еще не зашифрован или уже открыт)
+on post-fs-data
     mkdir /data/sec_storage_data 0700 system system
     mkdir /data/sec_storage_data_users 0700 system system
-    
-    # 4. И ТОЛЬКО ТЕПЕРЬ запускаем сервисы из примонтированного /vendor
+
+on boot
+    write /dev/kmsg OFRP-RC:boot
+    write /proc/sys/kernel/panic_on_oops 0
+    write /proc/sys/kernel/panic 0
+    write /sys/class/leds/lcd_backlight0/brightness 1573
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    mkdir /config/usb_gadget/g1/functions/mass_storage.0
+    start adbd
+    setprop sys.usb.config adb
+    write /dev/kmsg OFRP-RC:adbd-start-requested
+
+    # Запуск менеджера HIDL-интерфейсов и главного демона TrustZone
+    start hwservicemanager
     start teecd
     start vendor.keymaster-3-0
     start vendor.gatekeeper-1-0
+    write /dev/kmsg OFRP-RC:crypto-services-started
 
 service teecd /vendor/bin/teecd
     user root
