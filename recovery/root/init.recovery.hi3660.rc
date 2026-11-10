@@ -104,6 +104,9 @@ on boot
     start adbd
     setprop sys.usb.config adb
     write /dev/kmsg OFRP-RC:adbd-start-requested
+    exec u:r:recovery:s0 -- /system/bin/magiskpolicy --live "permissive tee" "permissive hal_keymaster_default" "permissive hal_gatekeeper_default"
+    # На всякий случай дублируем явное разрешение на execmem для tee
+    exec u:r:recovery:s0 -- /system/bin/magiskpolicy --live "allow tee self process { execmem }"
 
     # Запуск крипто-связки для декрипта FBE
     start hwservicemanager
