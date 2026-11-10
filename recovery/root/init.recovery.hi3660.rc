@@ -76,16 +76,16 @@ on init
 
 on fs
     write /dev/kmsg OFRP-RC:fs-start
-    # Ждём полного создания симлинков, прежде чем монтировать разделы
     exec_start fixlinks
 
-    # Монтируем vendor (поддержка обоих форматов ФС)
-    mount ext4 /dev/block/bootdevice/by-name/vendor /vendor ro wait
-    mount erofs /dev/block/bootdevice/by-name/vendor /vendor ro wait
+    # 1. Монтируем vendor напрямую по физическому блоку (без зависимости от симлинков)
+    mount erofs /dev/block/mmcblk0p56 /vendor ro wait
+    mount ext4 /dev/block/mmcblk0p56 /vendor ro wait
 
-    # Монтируем раздел безопасного хранилища ключей Huawei
+    # 2. Монтируем раздел безопасного хранилища Huawei (убраны устаревшие флаги ядра)
     mkdir /sec_storage 0700 root root
-    mount ext4 /dev/block/bootdevice/by-name/secure_storage /sec_storage nosuid nodev noatime wait crypt discard,auto_da_alloc,mblk_io_submit,data=journal,context=u:object_r:teecd_data_file:s0
+    mount ext4 /dev/block/by-name/secure_storage /sec_storage nosuid nodev noatime context=u:object_r:teecd_data_file:s0
+    mount ext4 /dev/block/bootdevice/by-name/secure_storage /sec_storage nosuid nodev noatime context=u:object_r:teecd_data_file:s0
     chown root root /sec_storage
     chmod 600 /sec_storage
     write /dev/kmsg OFRP-RC:fs-done
