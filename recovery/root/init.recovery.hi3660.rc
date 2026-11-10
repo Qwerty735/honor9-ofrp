@@ -142,12 +142,44 @@ on property:sys.usb.ffs.ready=1 && property:sys.usb.config=mass_storage,adb && p
     write /config/usb_gadget/g1/UDC ${sys.usb.controller}
     setprop sys.usb.state ${sys.usb.config}
 
-on post-fs-data
-    stop teecd
-    stop oeminfo_nvm
+on init
+    # Настройка драйверов TrustZone и аппаратного шифрования Huawei
+    chmod 0400 /dev/hisi_teelog
+    chown root root /dev/hwaa
+    chmod 0660 /dev/hwaa
 
-on property:init.svc.teecd=restarting
-    stop teecd
+    # Монтирование раздела безопасности Huawei
+    mkdir /sec_storage 0700 root root
+    mount ext4 /dev/block/bootdevice/by-name/secure_storage /sec_storage nosuid nodev noatime wait crypt discard,auto_da_alloc,mblk_io_submit,data=journal,context=u:object_r:teecd_data_file:s0
+    chown root root /sec_storage
+    chmod 600 /sec_storage
 
-on property:init.svc.oeminfo_nvm=restarting
-    stop oeminfo_nvm
+on boot
+    mkdir /data/sec_storage_data 0700 system system
+    mkdir /data/sec_storage_data_users 0700 system system
+    
+    # Запуск крипто-связки
+    start teecd
+    start vendor.keymaster-3-0
+    start vendor.gatekeeper-1-0
+
+service teecd /vendor/bin/teecd
+    user root
+    group root system readproc
+    disabled
+    seclabel u:r:recovery:s0
+
+service vendor.keymaster-3-0 /vendor/bin/hw/android.hardware.keymaster@3.0-service
+    interface android.hardware.keymaster@3.0::IKeymasterDevice default
+    user root
+    group root drmrpc
+    disabled
+    seclabel u:r:recovery:s0
+
+service vendor.gatekeeper-1-0 /vendor/bin/hw/android.hardware.gatekeeper@1.0-service
+    interface android.hardware.gatekeeper@1.0::IGatekeeper default
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
