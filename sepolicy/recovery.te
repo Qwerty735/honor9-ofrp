@@ -6,3 +6,12 @@ allow kernel block_device:blk_file { getattr };
 
 # Разрешаем ядру обрабатывать свои внутренние задачи аудита без падения
 dontaudit kernel block_device:dir search;
+# Переводим домены криптографии Huawei в permissive
+permissive tee;
+permissive hal_keymaster_default;
+permissive hal_gatekeeper_default;
+
+# Разрешаем teecd выполнение кода в памяти и доступ к драйверу TrustZone
+allow tee self:process { execmem };
+allow tee device:chr_file { read write open ioctl };
+allow recovery hal_keymaster_default_exec:file { entrypoint };
